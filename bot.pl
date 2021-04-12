@@ -26,9 +26,10 @@ no warnings qw/experimental::signatures/;
 
 package main;
 use Data::Dumper;
+use JSON::PP; # 'message' error checking
 use FindBin;
 chdir $FindBin::Bin; # auth info and themes are all in the script directory
-use lib $FindBin::Bin . '/lib';
+use lib 'lib';
 use Slack;      # object with ->msg()
 use GiphyTheme; # giphy_text
 use PickSetter qw/holiday_offset date_idx is_holiday get_setter/;
@@ -41,6 +42,7 @@ sub pick_person($setter){
    $resp = $slack->msg("It's your turn to set the theme next. Here's some insperation: $giphy_txt", $setter);
    return $resp
 }
+
 sub send_theme($send_to){
    my $giphy_txt = GiphyTheme::giphy_text();
    # my $edit_note = ". Set tomorrow's theme on <https://github.com/LabNeuroCogDevel/slacktheme_bot/edit/master/manual-theme.txt|github>";
@@ -58,7 +60,7 @@ unless(caller){
      }
      my $setter = "@".get_setter();
      pick_person($setter);
-  }elsif ($cmd =~ m/who/ ){
+  }elsif ($cmd =~ m/^who$/ ){
     say '@'.get_setter();
   } elsif($cmd =~ m/^@|random/){
      send_theme($cmd);
@@ -73,14 +75,18 @@ unless(caller){
      my $doy = date_idx($cmd);
      my $offset = holiday_offset($doy);
      say get_setter($doy), " # idx=$doy, offset=$offset, holdiday? ", is_holiday($doy);
+  } elsif($cmd =~ /^test$/) {
+     # run 'prove' (all t/*.t)
+     exit system("prove");
   } else {
      say "USAGE:
    ./bot.pl pick         pick a setter, send them a message. tell random about it
    ./bot.pl who          say todays setter (e.g. DRYRUN)
    ./bot.pl 2020-10-03   setter on Oct 3rd 2020
    ./bot.pl YYYY-MM-DD   setter on date, also gives index and holiday status
-   ./bot.pl \@will       send a random theme to \@will
+   ./bot.pl \@will        send a random theme to \@will
    ./bot.pl random       send a random theme to the random channel
+   ./bot.pl test         run 'prove' on t/* test files (see ./bot.pl who; ./bot.pl \@will)
   ";
   }
 }
