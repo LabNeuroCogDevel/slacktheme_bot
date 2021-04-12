@@ -32,7 +32,8 @@ use FindBin;
 use Time::Piece;
 use JSON::PP;
 use FindBin; use lib $FindBin::Bin . '/lib';
-use slackbot;
+use Slack;
+use GiphyTheme;
 # auth info and themes are all in the script directory
 chdir $FindBin::Bin;
 
