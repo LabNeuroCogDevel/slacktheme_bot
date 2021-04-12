@@ -4,14 +4,19 @@ use File::Slurp;
 use URI::Escape;
 
 sub get_theme(){
-   #system('git pull'); # update maybe
+  # get random line from random file in themes/
+  # unless manual-theme.txt has been modified recently
+  # then use that
+
+  #system('git pull'); # update maybe
   my $man_fname = "manual-theme.txt";
   my $is_manual = ( -s $man_fname and -M $man_fname < 1);
-  
-  my $theme = $is_manual ? qx/sed 1q $man_fname/ : qx/shuf -n 1 theme_list.txt/;
-  my $theme_note = $is_manual ? "manual" : "automatic";
-  chomp($theme);
-  return($theme_note, $theme);
+  my $theme_file = $is_manual ?
+     $man_fname :
+     qx(find themes/ -type f | shuf -n 1);
+  my $theme_note = qx(shuf -n 1 $theme_file);
+  chomp($theme_file, $theme_note);
+  return($theme_file, $theme_note);
 }
 
 sub get_giphy($theme){
@@ -39,7 +44,7 @@ sub slack_text($img_url, $theme, $prefix="") {
 sub giphy_text() {
    my ($note, $theme) = get_theme();
    my $img_url = get_giphy($theme);
-   return slack_text($img_url, $theme);
+   return slack_text($img_url, $theme, "from `$note`: ");
 }
 
 1;
