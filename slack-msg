@@ -1,13 +1,30 @@
 #!/usr/bin/env bash
+set -eou pipefail
+env|grep -q ^DRYRUN=. && DRYRUN=echo || DRYRUN=
 cd $(dirname $0)
-# TODO. use tty to test if we have stdin for message
-[ $# -lt 2 ] && echo "
+
+usage(){
+ cat <<H
 USAGE: 
   $(basename $0) @person message
 EXAMPLE:
-  try_long_process; $(basename $0) @will \$_ process finished with status \$?
-" && exit 1
+  try_long_process; $(basename $0) @will long thing finished with status \$?
+  echo my message | $(basename $0) @will
+H
+  exit 1
+}
 
+# did we get the who part right?
+[ $# -lt 1 ] && usage
 who="$1"; shift
 [[ ! $who =~ ^@|random|general ]] && echo "bad person. try e.g. '@will' or 'random'" && exit 1
-./bot.pl message $who "$*"
+
+# message is ether from a pipe or from remaining args
+if tty >/dev/null; then 
+   [ $# -lt 1 ] && usage
+   msg="$*"
+else
+   [ $# -gt 0 ] && echo "WARNING: reading from pipe. extra args discarded '$*'"
+   msg="$(cat)"
+fi
+$DRYRUN ./bot.pl message $who "$msg"
