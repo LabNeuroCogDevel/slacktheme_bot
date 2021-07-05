@@ -29,7 +29,7 @@ use Data::Dumper;
 use JSON::PP; # 'message' error checking
 use FindBin;
 chdir $FindBin::Bin; # auth info and themes are all in the script directory
-use lib 'lib';
+use lib $FindBin::Bin . '/lib';
 use Slack;      # object with ->msg()
 use GiphyTheme; # giphy_text
 use PickSetter qw/holiday_offset date_idx is_holiday get_setter/;

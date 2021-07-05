@@ -16,9 +16,16 @@ sub date_idx {
    return($dt->yday - $dt->week*2);
 }
 
+sub index_or_index_from_ymd($i_or_ymd) {
+   # match yyyy-mm-dd and get year index OR
+   # clear any non-numeric values and assume it's already a day of year index
+   # used to read in $holiday_fname in holidays()
+   return $i_or_ymd =~ /^\d{4}-\d{2}-\d{2}/ ? date_idx($&) : $i_or_ymd =~ s/[^0-9].*//rg;
+}
+
 sub holidays($holiday_fname="holiday_doy.txt"){
   return () if not -s $holiday_fname;
-  my @holidays = grep {/^\d/} map {s/[^0-9].*//g;$_} read_file($holiday_fname, chomp=>1);
+  my @holidays = grep {/^\d/} map {index_or_index_from_ymd($_)} read_file($holiday_fname, chomp=>1);
 }
 
 sub is_holiday($date_idx=date_idx()){
