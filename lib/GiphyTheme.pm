@@ -26,7 +26,7 @@ sub get_giphy($theme){
                      uri_escape($theme).
                      "&offset=0&limit=10";
   chomp(my $img_url = qx/
-     curl -qL "$giphy_search" |
+     curl -sSkqL "$giphy_search" |
      jq -r '.data[] |
             select(.images.original.size|tonumber| . <= 1000000)|
             select(.images.original.url| match("gif";"i"))|
