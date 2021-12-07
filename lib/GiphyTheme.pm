@@ -11,12 +11,17 @@ sub get_theme(){
   #system('git pull'); # update maybe
   my $man_fname = "manual-theme.txt";
   my $is_manual = ( -s $man_fname and -M $man_fname < 1);
-  my $theme_file = $is_manual ?
-     $man_fname :
-     qx(find themes/ -type f | shuf -n 1);
-  my $theme_note = qx(shuf -n 1 $theme_file);
-  chomp($theme_file, $theme_note);
-  return($theme_file, $theme_note);
+  my ($theme_file, $theme_text);
+  if($is_manual){
+     $theme_file = $man_fname;
+     $theme_text = qx(shuf -n 1 $theme_file);
+  }else{
+     my $theme_file_text = qx(find themes/ -type f | xargs grep '\\s'|shuf -n 1);
+     ($theme_file, $theme_text) = split /:/, $theme_file_text;
+  }
+  chomp($theme_file, $theme_text);
+  $theme_file="<https://github.com/LabNeuroCogDevel/slacktheme_bot/blob/master/$theme_file|`$theme_file`>";
+  return($theme_file, $theme_text);
 }
 
 sub get_giphy($theme){
@@ -35,16 +40,16 @@ sub get_giphy($theme){
   return $img_url;
 }
 sub slack_text($img_url, $theme, $prefix="") {
-  # prefix previously like "today's note theme: "
+  # prefix previously like "today's theme: "
   my $have_img = $img_url =~ m/http/;
-  my $txt = $have_img?"$prefix<$img_url|$theme>": "no giphy for *$theme*! :scream:";
+  my $txt = $have_img?"$prefix<$img_url|$theme>": "no giphy for theme *$theme*! :scream:";
   return($txt)
 }
 
 sub giphy_text() {
-   my ($note, $theme) = get_theme();
+   my ($file, $theme) = get_theme();
    my $img_url = get_giphy($theme);
-   return slack_text($img_url, $theme, "from `$note`: ");
+   return slack_text($img_url, $theme, "from $file: ");
 }
 
 1;
