@@ -20,7 +20,6 @@ sub get_theme(){
      ($theme_file, $theme_text) = split /:/, $theme_file_text;
   }
   chomp($theme_file, $theme_text);
-  $theme_file="<https://github.com/LabNeuroCogDevel/slacktheme_bot/blob/master/$theme_file|`$theme_file`>";
   return($theme_file, $theme_text);
 }
 
@@ -47,9 +46,10 @@ sub slack_text($img_url, $theme, $prefix="") {
 }
 
 sub giphy_text() {
-   my ($file, $theme) = get_theme();
+  my ($theme_file, $theme) = get_theme();
+  my $file_disp="<https://github.com/LabNeuroCogDevel/slacktheme_bot/blob/master/$theme_file|`$theme_file`>";
    my $img_url = get_giphy($theme);
-   return slack_text($img_url, $theme, "from $file: ");
+   return slack_text($img_url, $theme, "from $file_disp: ");
 }
 
 1;
