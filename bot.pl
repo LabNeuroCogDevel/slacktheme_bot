@@ -22,6 +22,8 @@ no warnings qw/experimental::signatures/;
 # 20201007WF - handle different arguments
 # 20210219WF - library
 # 20210412WF - use themes/* for suggestsions (merged lib and theme)
+# 20211224WF - exit if holiday on pick (@|random) too
+# 20220115WF - holiday for @|random sends holiday message instead of just exiting
 
 
 package main;
@@ -43,34 +45,45 @@ sub pick_person($setter){
    return $resp
 }
 
+
+sub send_msg($send_to, $message){
+   my $slack = Slack->new;
+   my $resp = $slack->msg($message, $send_to);
+   print STDERR "ERROR\n" if JSON::PP->new->encode($resp->{ok}) ne "true";
+   return $resp;
+}
+
 sub send_theme($send_to){
    my $giphy_txt = GiphyTheme::giphy_text();
    # my $edit_note = ". Set tomorrow's theme on <https://github.com/LabNeuroCogDevel/slacktheme_bot/edit/master/manual-theme.txt|github>";
-   my $slack = Slack->new;
-   my $resp = $slack->msg("$giphy_txt", $send_to);
-   return $resp
+   return send_msg($send_to, "$giphy_txt");
+}
+sub exit_holiday() {
+   return if not is_holiday();
+   say "holiday!";
+   exit;
 }
 
 unless(caller){
   my $cmd = $#ARGV>=0?$ARGV[0]:"";
   if($cmd eq "pick") {
-     if(is_holiday()){
-        say "holiday!";
-        exit;
-     }
+     exit_holiday();
      my $setter = "@".get_setter();
      pick_person($setter);
   }elsif ($cmd =~ m/^who$/ ){
     say '@'.get_setter();
   } elsif($cmd =~ m/^@|random/){
+     if(is_holiday()){
+        say "holiday!";
+        send_msg($cmd, "Today is a holiday!");
+        exit;
+     }
      send_theme($cmd);
   } elsif($cmd =~ m/^message/){
      die "need a person and message: bot.pl message \@will 'hello'" if $#ARGV!=2;
      my $send_to = $ARGV[1];
      my $message = $ARGV[2];
-     my $slack = Slack->new;
-     my $resp = $slack->msg($message, $send_to);
-     print STDERR "ERROR\n" if JSON::PP->new->encode($resp->{ok}) ne "true";
+     send_msg($send_to, $message)
   } elsif($cmd =~ m/^[-\d]+$/) {
      my $doy = date_idx($cmd);
      my $offset = holiday_offset($doy);
