@@ -6,7 +6,10 @@ Setter is
  * is annonced to the `random` channel.
  * sent a DM from the bot with a suggested theme (and giphy). 
 
-Suggested theme list from https://literarydevices.net/a-huge-list-of-common-themes/
+Suggested theme list from
+|`themes.txt`|https://literarydevices.net/a-huge-list-of-common-themes/|
+|`catchphrases.txt`|https://en.wikipedia.org/wiki/List_of_catchphrases_in_American_and_British_mass_media#In_American_television|
+|`athletics.txt`|https://en.wikipedia.org/wiki/Lists_of_Olympic_medalists https://www.atlasobscura.com/articles/18-obscure-sports-worth-rooting-for|
 
 ## Using
 
