@@ -43,9 +43,9 @@ sub holiday_offset($doy){
   return($offset)
 }
 
-sub get_setter($doy=date_idx()){
+sub get_setter($doy=date_idx(), $everyone=[read_file('ids.txt', chomp=>1)]){
   my $offset = holiday_offset($doy);
-  my @everyone = read_file('ids.txt', chomp=>1);
+  my @everyone = @$everyone;
   my $setter = $everyone[($doy - $offset) % ($#everyone+1)];
   return $setter;
 }
