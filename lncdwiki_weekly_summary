@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#
+PASS=${PASS:-}
+
+# yq's jq for xml, "xq," is xq-python in debian
+xq=xq
+command -v $xq >/dev/null || xq="xq-python"
+
+# getting a large amount(500)  of b/c
+curl -Ls "https://${PASS}lncd.pitt.edu/wiki/feed.php?num=500" |
+  $xq  --arg DATE "$(date -d "1 week ago - 1 day" +%F)" -r \
+  '."rdf:RDF".item[]|
+   select(."dc:date" > $DATE )|
+   select(.title |test("Page moved from")|not)|
+   [(."dc:creator"|sub(" .*";"")),
+    .link         |sub("http.*?=|&.*";"";"g")]|
+   @tsv' |
+  grep -v %3A| # dont track show images
+  sort -u|     # dont care about repeat edits
+  perl -slane \
+    'push @{$a{$F[0]}}, $F[1];
+     END{print "- ", $#{$a{$_}}+1,
+               " $_ ",
+               join(",", map {$_=" <https://lncd.pitt.edu/wiki/doku.php?id=$_|`:$_`>"} @{$a{$_}}) for(keys %a)}'|\
+  grep -v " Anonymous " | # where did anonymous come from?
+  sort -t' ' -nrk2,2

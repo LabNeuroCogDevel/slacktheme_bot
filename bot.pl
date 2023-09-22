@@ -24,7 +24,16 @@ no warnings qw/experimental::signatures/;
 # 20210412WF - use themes/* for suggestsions (merged lib and theme)
 # 20211224WF - exit if holiday on pick (@|random) too
 # 20220115WF - holiday for @|random sends holiday message instead of just exiting
-
+# 20230922WF - force old SSL protocol (b/c debian12 bookworm has strict SSL?)
+# Cannot create SSL connection: SSL connect attempt failed error:0A000152:SSL routines::unsafe legacy renegotiation disable
+# https://www.perlmonks.org/?node_id=11151136
+use IO::Socket::SSL;
+my $context = new IO::Socket::SSL::SSL_Context(
+  SSL_version => 'tlsv12',
+  SSL_verify_mode => Net::SSLeay::VERIFY_NONE(),
+  );
+IO::Socket::SSL::set_default_context($context);
+use LWP::UserAgent;
 
 package main;
 use Data::Dumper;
