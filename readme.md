@@ -35,3 +35,12 @@ Previously manually set themes would come from github. This is still posibile, b
 bot does a `git pull` before looking for a theme. if `manual-theme.txt` has been modified, text in that file will be used as a theme.
 
 Github enables [editting the manual theme](https://github.com/LabNeuroCogDevel/slacktheme_bot/edit/master/manual-theme.txt) on the web!
+
+# Cron
+on foranw@rhea: `crontab -l|grep slack` is
+
+```
+ # 00 08 * * 1,2,3,4,5 /opt/ni_tools/slacktheme_bot/bot.pl random 2> /tmp/theme_bot.log
+00 08 * * 1  /opt/ni_tools/slacktheme_bot/lncdgit_summary |  OPENSSL_CONF="/opt/ni_tools/slacktheme_bot/openssl.conf" /opt/ni_tools/slacktheme_bot/slack-msg codereview 
+00 12 * * 5  /opt/ni_tools/slacktheme_bot/lncdwiki_weekly_summary | OPENSSL_CONF="/opt/ni_tools/slacktheme_bot/openssl.conf" /opt/ni_tools/slacktheme_bot/slack-msg random 
+```

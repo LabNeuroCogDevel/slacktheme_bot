@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# 20230922WF - all_scripts github change list using local git
+cd ~foranw/src/backup/allscripts/bakgit || exit
+echo "File modifications and deletions on rhea since $(date -d '1 week ago' +%F) (<https://github.com/LabNeuroCogDevel/allscripts|github:allscripts>):"
+git diff --name-status  HEAD 'HEAD@{1 week ago}' |
+perl -sane '
+  next if m:/\.:;
+  # remove redundant leading if and get dirname
+  $F[1]=~s:root/Volumes/::;
+  $F[1]=~s:/[^/]+$::;
+
+  # increment count of dirname+modtype: $a{/path/to/mris}{M}
+  ++$a{$F[1]}{$F[0]};
+
+  # line per 
+  END{
+   for $d (keys %a){
+     print "- ", join ",", map {$_="$a{$d}{$_}$_"} reverse sort keys %{$a{$d}};
+     print "\t<https://github.com/LabNeuroCogDevel/allscripts/tree/master/root/Volumes/$d|`$d`>\n";
+   }
+ }'|
+ sort -nr
