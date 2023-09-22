@@ -6,6 +6,8 @@ PASS=${PASS:-}
 xq=xq
 command -v $xq >/dev/null || xq="xq-python"
 
+echo Wiki Edits this week
+
 # getting a large amount(500)  of b/c
 curl -Ls "https://${PASS}lncd.pitt.edu/wiki/feed.php?num=500" |
   $xq  --arg DATE "$(date -d "1 week ago - 1 day" +%F)" -r \
