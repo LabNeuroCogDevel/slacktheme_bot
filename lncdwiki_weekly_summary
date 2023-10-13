@@ -1,16 +1,48 @@
 #!/usr/bin/env bash
+
 #
-PASS=${PASS:-}
+# fetch and format recent wiki changes for a slack message
+# as promotion for wiki
+#
+# set TIMEDIFF and/or PASS environ to change behave
+#   TIMEDIFF="1 week ago - 1 day" # pased onto 'date -d' for decoding
+#   PASS="$(pass wiki)" #looks like 'user:pass'
+#
+# when PASS is set, uses curl to create cookie
+#
+# used in cron, piped to slack-msg
+#  00 12 * * 5  PASS=$(pass wiki) lncdwiki_weekly_summary | slack-msg random
+
+# 20231013WF - added code header; password; links in top of message
+
+
+TIMEDIFF=${TIMEDIFF:-1 week ago - 1 day}
+EDITS_STARTING_ON="$(date -d "$TIMEDIFF" +%F)"
+
+PASS=${PASS:-} # default to no pass
+COOKIEARGS=()  # and no cookie jar args for curl
+
+# originally thought creds in url like https://${PASS}@lncd.pitt.edu...
+# would work. but need cookie login
+# NB. cookie file hanging out in /tmp/ is maybe not great
+if [ -n "$PASS" ]; then
+   u=${PASS/:*/}
+   p=${PASS/*:/}
+   echo "$u $p" >&2
+   curl -Lsd "u=$u&p=$p" --cookie-jar /tmp/cjar https://lncd.pitt.edu/wiki/doku.php >/dev/null
+   COOKIEARGS=(--cookie /tmp/cjar --cookie-jar /tmp/cjar)
+fi
 
 # yq's jq for xml, "xq," is xq-python in debian
 xq=xq
 command -v $xq >/dev/null || xq="xq-python"
 
-echo Wiki Edits this week
+# message top with very visible links to wiki
+echo "<https://lncd.pitt.edu/wiki/doku.php|Wiki> Edits <https://lncd.pitt.edu/wiki/doku.php?id=start&do=recent|this week>"
 
 # getting a large amount(500)  of b/c
-curl -Ls "https://${PASS}lncd.pitt.edu/wiki/feed.php?num=500" |
-  $xq  --arg DATE "$(date -d "1 week ago - 1 day" +%F)" -r \
+curl "${COOKIEARGS[@]}" -Ls "https://lncd.pitt.edu/wiki/feed.php?num=500" |
+  $xq  --arg DATE "$EDITS_STARTING_ON" -r \
   '."rdf:RDF".item[]|
    select(."dc:date" > $DATE )|
    select(.title |test("Page moved from")|not)|
