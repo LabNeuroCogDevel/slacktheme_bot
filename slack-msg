@@ -17,7 +17,7 @@ H
 # did we get the who part right?
 [ $# -lt 1 ] && usage
 who="$1"; shift
-[[ ! $who =~ ^@|random|general ]] && echo "bad person. try e.g. '@will' or 'random'" && exit 1
+[[ ! $who =~ ^@|random|general|codereview ]] && echo "bad person. try e.g. '@will' or 'random'" && exit 1
 
 # message is ether from a pipe or from remaining args
 if tty >/dev/null; then 
