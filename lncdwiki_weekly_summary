@@ -28,7 +28,6 @@ COOKIEARGS=()  # and no cookie jar args for curl
 if [ -n "$PASS" ]; then
    u=${PASS/:*/}
    p=${PASS/*:/}
-   echo "$u $p" >&2
    curl -Lsd "u=$u&p=$p" --cookie-jar /tmp/cjar https://lncd.pitt.edu/wiki/doku.php >/dev/null
    COOKIEARGS=(--cookie /tmp/cjar --cookie-jar /tmp/cjar)
 fi
@@ -38,7 +37,7 @@ xq=xq
 command -v $xq >/dev/null || xq="xq-python"
 
 # message top with very visible links to wiki
-echo "<https://lncd.pitt.edu/wiki/doku.php|Wiki> Edits <https://lncd.pitt.edu/wiki/doku.php?id=start&do=recent|this week>"
+echo "<https://lncd.pitt.edu/wiki/doku.php|Wiki> Edits <https://lncd.pitt.edu/wiki/doku.php?id=start&do=recent|this week> below. Also check out -- and maybe update -- a <https://lncd.pitt.edu/wiki/doku.php?do=randompage|random page>"
 
 # getting a large amount(500)  of b/c
 curl "${COOKIEARGS[@]}" -Ls "https://lncd.pitt.edu/wiki/feed.php?num=500" |
