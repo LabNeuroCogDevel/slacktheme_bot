@@ -52,7 +52,7 @@ curl "${COOKIEARGS[@]}" -Ls "https://lncd.pitt.edu/wiki/feed.php?num=500" |
   sort -u|     # dont care about repeat edits
   perl -slane \
     'push @{$a{$F[0]}}, $F[1];
-     END{print "- ", $#{$a{$_}}+1,
+     END{print " :star: ", $#{$a{$_}}+1,
                " $_ ",
                join(",", map {$_=" <https://lncd.pitt.edu/wiki/doku.php?id=$_|`:$_`>"} @{$a{$_}}) for(keys %a)}'|\
   grep -v " Anonymous " | # where did anonymous come from?
