@@ -37,23 +37,25 @@ xq=xq
 command -v $xq >/dev/null || xq="xq-python"
 
 # message top with very visible links to wiki
-echo "<https://lncd.pitt.edu/wiki/doku.php|Wiki> Edits <https://lncd.pitt.edu/wiki/doku.php?id=start&do=recent|this week> below. Also check out -- and maybe update -- a <https://lncd.pitt.edu/wiki/doku.php?do=randompage|random page>"
+echo "<https://lncd.pitt.edu/wiki/doku.php|Wiki> Edits <https://lncd.pitt.edu/wiki/doku.php?id=start&do=recent|this week> below."
+#echo "Other entry points: <https://lncd.pitt.edu/wiki/doku.php?id=admin:website:wiki:missing|missing>, <https://lncd.pitt.edu/wiki/doku.php?id=notebooks|notebook>, <https://lncd.pitt.edu/wiki/doku.php?do=randompage|random article>"
 
 # getting a large amount(500)  of b/c
-curl "${COOKIEARGS[@]}" -Ls "https://lncd.pitt.edu/wiki/feed.php?num=500" |
+curl "${COOKIEARGS[@]}" -Ls "https://lncd.pitt.edu/wiki/feed.php?num=500" | tee /tmp/wiki-results.html |
   $xq  --arg DATE "$EDITS_STARTING_ON" -r \
   '."rdf:RDF".item[]|
    select(."dc:date" > $DATE )|
-   select(.title |test("Page moved from")|not)|
+   select((if .title == null then "no title" else .title end) |test("Page moved from")|not)|
    [(."dc:creator"|sub(" .*";"")),
     .link         |sub("http.*?=|&.*";"";"g")]|
-   @tsv' |
+   @tsv' | tee /tmp/wiki-results.tsv |
   grep -v %3A| # dont track show images
   sort -u|     # dont care about repeat edits
   perl -slane \
     'push @{$a{$F[0]}}, $F[1];
      END{print " :star: ", $#{$a{$_}}+1,
                " $_ ",
-               join(",", map {$_=" <https://lncd.pitt.edu/wiki/doku.php?id=$_|`:$_`>"} @{$a{$_}}) for(keys %a)}'|\
+               join(",", map {$_=" <https://lncd.pitt.edu/wiki/doku.php?id=$_|`:$_`>"} @{$a{$_}}) for(keys %a)}'|
+  tee /tmp/wiki-results-counts.tsv |
   grep -v " Anonymous " | # where did anonymous come from?
-  sort -t' ' -nrk2,2
+  sort -t' ' -nrk3,3
