@@ -25,31 +25,60 @@ COOKIEARGS=()  # and no cookie jar args for curl
 # originally thought creds in url like https://${PASS}@lncd.pitt.edu...
 # would work. but need cookie login
 # NB. cookie file hanging out in /tmp/ is maybe not great
-if [ -n "$PASS" ]; then
-   u=${PASS/:*/}
-   p=${PASS/*:/}
-   curl -Lsd "u=$u&p=$p" --cookie-jar /tmp/cjar https://lncd.pitt.edu/wiki/doku.php >/dev/null
-   COOKIEARGS=(--cookie /tmp/cjar --cookie-jar /tmp/cjar)
-fi
+auth_cookie(){
+   declare -g COOKIEARGS
+   jar=${1:-/tmp/cjar}
+   if [ -n "$PASS" -a -z "${COOKIEARGS[*]}" ]; then
+      u=${PASS/:*/}
+      p=${PASS/*:/}
+      curl -Lsd "u=$u&p=$p" --cookie-jar "$jar" https://lncd.pitt.edu/wiki/doku.php >/dev/null
+      COOKIEARGS=(--cookie "$jar" --cookie-jar "$jar")
+   fi
+}
+wiki_curl(){
+   declare -g COOKIEARGS
+   auth_cookie /tmp/cjar # populates COOKIEARGS
+   curl "${COOKIEARGS[@]}" -Ls  "$@"
+}
 
 # yq's jq for xml, "xq," is xq-python in debian
 xq=xq
 command -v $xq >/dev/null || xq="xq-python"
 
+get_wiki_updates(){
+   #echo "cookies: ${COOKIEARGS[*]}" >&2
+   saveto=${1:-/tmp/wiki-results.tsv}
+   wiki_curl "https://lncd.pitt.edu/wiki/feed.php?num=500" | tee /tmp/wiki-results.html |
+     $xq  --arg DATE "$EDITS_STARTING_ON" -r \
+     '."rdf:RDF".item[]|
+      select(."dc:date" > $DATE )|
+      select((if .title == null then "no title" else .title end) |test("Page moved from")|not)|
+      [(."dc:creator"|sub(" .*";"")),
+       .link         |sub("http.*?=|&.*";"";"g")]|
+      @tsv' | tee "$saveto" |
+     grep -v %3A # dont show images
+}
+wiki_revisions(){
+  local id="$1"
+  wiki_curl "https://lncd.pitt.edu/wiki/doku.php?id=${id}&do=revisions" |
+   grep 'div.*no.*li>'|sed 's:/li>:/li>\n:g'|
+   perl -lne \
+   '$date=$1=~s:/:-:gr if m:class="date">([0-9/]+) [^<]+</span:;
+    $user=$1 if m:<bdi>(.*)</bdi:;
+    $url=$1 if m/doku.php\?id=(.*?)&rev/;
+    print "$user\t$url" if m:/li: and $user and $url and $date gt $ENV{EDITS_STARTING_ON}'
+}
+wiki_main(){
 # message top with very visible links to wiki
 echo "<https://lncd.pitt.edu/wiki/doku.php|Wiki> Edits <https://lncd.pitt.edu/wiki/doku.php?id=start&do=recent|this week> below."
 #echo "Other entry points: <https://lncd.pitt.edu/wiki/doku.php?id=admin:website:wiki:missing|missing>, <https://lncd.pitt.edu/wiki/doku.php?id=notebooks|notebook>, <https://lncd.pitt.edu/wiki/doku.php?do=randompage|random article>"
 
 # getting a large amount(500)  of b/c
-curl "${COOKIEARGS[@]}" -Ls "https://lncd.pitt.edu/wiki/feed.php?num=500" | tee /tmp/wiki-results.html |
-  $xq  --arg DATE "$EDITS_STARTING_ON" -r \
-  '."rdf:RDF".item[]|
-   select(."dc:date" > $DATE )|
-   select((if .title == null then "no title" else .title end) |test("Page moved from")|not)|
-   [(."dc:creator"|sub(" .*";"")),
-    .link         |sub("http.*?=|&.*";"";"g")]|
-   @tsv' | tee /tmp/wiki-results.tsv |
-  grep -v %3A| # dont track show images
+  get_wiki_updates /tmp/wiki-results.tsv |
+  while read -r user path; do
+     echo -e "$user\t$path"
+     wiki_revisions "$path" || :
+  done |
   sort -u|     # dont care about repeat edits
   perl -slane \
     'push @{$a{$F[0]}}, $F[1];
@@ -59,3 +88,7 @@ curl "${COOKIEARGS[@]}" -Ls "https://lncd.pitt.edu/wiki/feed.php?num=500" | tee 
   tee /tmp/wiki-results-counts.tsv |
   grep -v " Anonymous " | # where did anonymous come from?
   sort -t' ' -nrk3,3
+}
+
+# iffmain from lncdtools
+eval "$(iffmain wiki_main)"
