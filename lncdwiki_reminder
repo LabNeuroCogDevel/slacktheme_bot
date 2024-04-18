@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+# 00 13 * * 4 /opt/ni_tools/slacktheme_bot/lncdwiki_reminder noedits
+
+[[ $# -eq 0 || "$*" =~ ^--?h ]] && echo "USAGE: $0 [msgonly|noedits|slackid1 slackid2]" && exit 1
+
+export OPENSSL_CONF="/opt/ni_tools/slacktheme_bot/openssl.conf"
+PATH="$PATH:/opt/ni_tools/lncdtools"
+wiki=https://lncd.pitt.edu/wiki/doku.php
+
+cd "$(dirname "$0")" || exit 1
+export TIMEDIFF="1 week ago + 1 day" # 1 day short of a week, overwrites in source below
+source lncdwiki_weekly_summary # wiki_user_path_edits
+
+get_noedits(){
+  export PASS=$(pass wiki)
+  join -v2 -j1 \
+     <(wiki_user_path_edits|cut -f1 |sort -u) \
+     <(sort -u wiki_lookup|sed '/^#/d') | cut -f2 -d' '
+}
+
+case $1 in 
+   msgonly) TO_NOTIFY=("msgonly") ;;
+   noedits)
+      mapfile -t TO_NOTIFY < <(get_noedits) ;;
+   *) TO_NOTIFY=("$@");;
+esac
+
+
+for slack_id in "${TO_NOTIFY[@]}"; do
+  [[ "$slack_id" =~ msgonly ]] && msg_func="cat" || msg_func="slack-msg @$slack_id"
+  [[ -n "${DRYRUN:-}" ]] && echo "# $msg_func" && continue
+  cat  <<HERE | $msg_func
+The weekly <$wiki|LNCD wiki> edit summary drops at noon tomorrow **and you don't have any edits yet this week**.
+Get a :star:! How? Consider
+  - inter-linking recent research highlights within your <$wiki?id=notebooks|notebook> or <$wiki?id=projects|project> page
+  - collaborating on <$wiki?id=start&do=recent|recent changes>
+  - performing general <https://lncd.pitt.edu/wiki/doku.php?id=admin:website:wiki:maintenance|maintenance>: add a <$wiki?id=admin:website:wiki:missing|missing page>, expand an <$wiki?id=admin:website:wiki:improvecanidates#smallest|incomplete "stub">, revitalize an <$wiki?id=admin:website:wiki:improvecanidates#oldest|old page>, or improve a <$wiki?do=randompage|random article>
+
+The <$wiki?id=tools:wiki#Benefits|benefits> of a wiki only take a few minutes a week to build!
+HERE
+   sleep 1
+done
