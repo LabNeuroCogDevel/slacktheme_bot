@@ -19,6 +19,8 @@
 TIMEDIFF=${TIMEDIFF:-1 week ago - 1 day}
 EDITS_STARTING_ON="$(date -d "$TIMEDIFF" +%F)"
 
+export EDITS_STARTING_ON # export for $ENV perl line in get_wiki_updates
+
 PASS=${PASS:-} # default to no pass
 COOKIEARGS=()  # and no cookie jar args for curl
 
@@ -68,18 +70,22 @@ wiki_revisions(){
     $url=$1 if m/doku.php\?id=(.*?)&rev/;
     print "$user\t$url" if m:/li: and $user and $url and $date gt $ENV{EDITS_STARTING_ON}'
 }
-wiki_main(){
-# message top with very visible links to wiki
-echo "<https://lncd.pitt.edu/wiki/doku.php|Wiki> Edits <https://lncd.pitt.edu/wiki/doku.php?id=start&do=recent|this week> below."
-#echo "Other entry points: <https://lncd.pitt.edu/wiki/doku.php?id=admin:website:wiki:missing|missing>, <https://lncd.pitt.edu/wiki/doku.php?id=notebooks|notebook>, <https://lncd.pitt.edu/wiki/doku.php?do=randompage|random article>"
-
-# getting a large amount(500)  of b/c
+wiki_user_path_edits(){
   get_wiki_updates /tmp/wiki-results.tsv |
   while read -r user path; do
      echo -e "$user\t$path"
      wiki_revisions "$path" || :
   done |
-  sort -u|     # dont care about repeat edits
+  tee /tmp/wiki-results_revs.tsv |
+  sort -u
+}
+wiki_main(){
+# message top with very visible links to wiki
+echo "<https://lncd.pitt.edu/wiki/doku.php|Wiki> Edits <https://lncd.pitt.edu/wiki/doku.php?id=start&do=recent|this week> (since $EDITS_STARTING_ON) below."
+#echo "Other entry points: <https://lncd.pitt.edu/wiki/doku.php?id=admin:website:wiki:missing|missing>, <https://lncd.pitt.edu/wiki/doku.php?id=notebooks|notebook>, <https://lncd.pitt.edu/wiki/doku.php?do=randompage|random article>"
+
+# getting a large amount(500)  of b/c
+  wiki_user_path_edits |     # dont care about repeat edits
   perl -slane \
     'push @{$a{$F[0]}}, $F[1];
      END{print " :star: ", $#{$a{$_}}+1,
