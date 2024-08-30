@@ -5,7 +5,8 @@
 [[ $# -eq 0 || "$*" =~ ^--?h ]] && echo "USAGE: $0 [msgonly|noedits|slackid1 slackid2]" && exit 1
 
 export OPENSSL_CONF="/opt/ni_tools/slacktheme_bot/openssl.conf"
-PATH="$PATH:/opt/ni_tools/lncdtools"
+export PATH="$PATH:/opt/ni_tools/lncdtools:$(dirname "$0")"
+export PERL5LIB="$PERL5LIB:/opt/ni_tools/perl5:/opt/ni_tools/perl5/lib/perl5"
 wiki=https://lncd.pitt.edu/wiki/doku.php
 
 cd "$(dirname "$0")" || exit 1
@@ -13,16 +14,20 @@ export TIMEDIFF="1 week ago + 1 day" # 1 day short of a week, overwrites in sour
 source lncdwiki_weekly_summary # wiki_user_path_edits
 
 get_noedits(){
-  export PASS=$(pass wiki)
+  export PASS=$(pass wiki) # used by user_path_edits from lncdwiki_weekly_summary
   join -v2 -j1 \
      <(wiki_user_path_edits|cut -f1 |sort -u) \
      <(sort -u wiki_lookup|sed '/^#/d') | cut -f2 -d' '
 }
 
+log_with_date(){
+   sed "s/$/\t$(date +%F)/" >> "${1}"
+}
+
 case $1 in 
    msgonly) TO_NOTIFY=("msgonly") ;;
    noedits)
-      mapfile -t TO_NOTIFY < <(get_noedits) ;;
+      mapfile -t TO_NOTIFY < <(get_noedits|tee >(log_with_date /var/log/wiki_noedits.log) );;
    *) TO_NOTIFY=("$@");;
 esac
 
