@@ -12,11 +12,14 @@ use Class::Tiny { auth => sub {slack_login} };
 sub msg($self, $txt, $to="random") {
     # to can be a person (e.g. @name) or channel (e.g. random)
     # posting message to specified channel and getting message description
-    my $posted_message = $self->auth->chat->post_message(
+    my $auth = $self->auth;
+    my $chat = $auth->chat;
+    my $posted_message = $chat->post_message(
          channel  => $to,
          text     => "$txt",
          link_names=>1,
     );
+
     return($posted_message);
 }
 

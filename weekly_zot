@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+#
+# fetch and format recent zotero additions
+#
+# used in cron, piped to slack-msg
+#  00 12 * * 5  | slack-msg random
+
+# 20240828WF - init
+
+
+# json from zotero. is 50 enough to get everything from the last week?
+#   https://www.zotero.org/settings/keys/new
+zotero_recent(){
+   fetch_max=50
+   lncd_ref_id=85391
+   curl -Ls -H "Zotero-API-Key: $(pass zotero-api-key)"\
+      "https://api.zotero.org/groups/$lncd_ref_id/items/top?limit=${fetch_max}&order=dateModified"
+}
+
+zotero_parse(){ 
+  TIMEDIFF=${TIMEDIFF:-1 week ago - 1 day}
+  EDITS_STARTING_ON="$(date -d "$TIMEDIFF" +%F)"
+  jq -r --arg DATE "$EDITS_STARTING_ON" \
+     '.[] |
+      select(.data.dateAdded > $DATE) |
+      [.meta.createdByUser.username, .meta.creatorSummary,
+       .data.date[0:4], .data.title[0:20] + "...",
+       .data.url]|
+      @tsv'
+}
+
+zotero_slackdown(){
+   # 0          1       2     3     4
+   # username; author; year; title; url
+   perl -F"\t" -slane '
+     # with title is too much
+     #push @{$ART{$F[0]}}, "*$F[2] $F[1]*: " . ($F[4]?"<$F[4]|$F[3]>":$F[3]);
+     
+     push @{$ART{$F[0]}}, ($F[4]?"<$F[4]|*$F[1]* $F[2]>":"*$F[1]* $F[2]") . " $F[3]";
+     END{
+      @USR = sort {$#{$ART{$b}} <=> $#{$ART{$a}} }  (keys %ART);
+      print("  :page_facing_up: `", $_, "` ($#{$ART{$_}}): ",
+            join("; ", @{$ART{$_}}),
+            "\n") for @USR;
+     }'
+}
+
+zotero_main(){
+   echo "This week's <https://www.zotero.org/groups/85391/lncd_ref|group zotero> additions include: "
+   zotero_recent |tee /tmp/zot_recent.json | zotero_parse| zotero_slackdown;
+}
+
+# iffmain from lncdtools
+eval "$(iffmain zotero_main)"

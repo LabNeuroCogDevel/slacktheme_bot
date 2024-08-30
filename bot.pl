@@ -58,7 +58,7 @@ sub pick_person($setter){
 sub send_msg($send_to, $message){
    my $slack = Slack->new;
    my $resp = $slack->msg($message, $send_to);
-   print STDERR "ERROR\n" if JSON::PP->new->encode($resp->{ok}) ne "true";
+   print STDERR "ERROR: message sending failed $send_to! ". Dumper($resp)."\n" if JSON::PP->new->encode($resp->{ok}) ne "true";
    return $resp;
 }
 
