@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # 20230922WF - all_scripts github change list using local git
+# 20231016WF - add exclude for things accidentally added to git
 cd ~foranw/src/backup/allscripts/bakgit || exit
 echo "File modifications and deletions on rhea since $(date -d '1 week ago' +%F) (<https://github.com/LabNeuroCogDevel/allscripts|github:allscripts>):"
-git diff --name-status  HEAD 'HEAD@{1 week ago}' |
-perl -sane '
+git diff --name-status  HEAD 'HEAD@{1 week ago}'|
+ grep -v 'Projects/corticalmyelin_development/software/' |
+ perl -sane '
   next if m:/\.:;
   # remove redundant leading if and get dirname
   $F[1]=~s:root/Volumes/::;
