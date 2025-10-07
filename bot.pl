@@ -56,6 +56,10 @@ sub pick_person($setter){
 
 
 sub send_msg($send_to, $message){
+   if($message eq ""){
+      print STDERR "message is emtpy, not sending to $send_to\n";
+      return;
+   }
    my $slack = Slack->new;
    my $resp = $slack->msg($message, $send_to);
    print STDERR "ERROR: message sending failed $send_to! ". Dumper($resp)."\n" if JSON::PP->new->encode($resp->{ok}) ne "true";
